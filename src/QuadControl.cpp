@@ -69,12 +69,22 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
   // You'll need the arm length parameter L, and the drag/thrust ratio kappa
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
-
+/*
   cmd.desiredThrustsN[0] = mass * 9.81f / 4.f; // front left
   cmd.desiredThrustsN[1] = mass * 9.81f / 4.f; // front right
   cmd.desiredThrustsN[2] = mass * 9.81f / 4.f; // rear left
   cmd.desiredThrustsN[3] = mass * 9.81f / 4.f; // rear right
+*/
+  // base class - L, kappa
+    float l = L / sqrtf(2.0f);
+    float t1 = momentCmd.x / l;
+    float t2 = momentCmd.y / l;
+    float t3 = momentCmd.z / kappa;
 
+    cmd.desiredThrustsN[0] = (collThrustCmd + t1 + t2 - t3) / 4.0f; // front left
+    cmd.desiredThrustsN[1] = (collThrustCmd - t1 + t2 + t3) / 4.0f; // front right
+    cmd.desiredThrustsN[2] = (collThrustCmd + t1 - t2 + t3) / 4.0f; // rear left
+    cmd.desiredThrustsN[3] = (collThrustCmd - t1 - t2 - t3) / 4.0f; // rear right
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
   return cmd;
@@ -98,7 +108,8 @@ V3F QuadControl::BodyRateControl(V3F pqrCmd, V3F pqr)
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
-  
+  V3F err = pqrCmd - pqr;
+  momentCmd = V3F(Ixx, Iyy, Izz) * kpPQR * err;
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
@@ -129,7 +140,24 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
+  pqrCmd.x = 0.0;
+  pqrCmd.y = 0.0;
+  pqrCmd.z = 0.0;
 
+  if (collThrustCmd > 0) {
+      float c = -collThrustCmd / mass;  // total commanded thrust
+
+      float b_x = CONSTRAIN(accelCmd.x / c, -maxTiltAngle, maxTiltAngle);   
+      float b_x_err = b_x - R(0, 2);
+      float b_dot_x = kpBank * b_x_err;
+
+      float b_y = CONSTRAIN(accelCmd.y / c, -maxTiltAngle, maxTiltAngle);
+      float b_y_err = b_y - R(1, 2);
+      float b_dot_y = kpBank * b_y_err;
+
+      pqrCmd.x = (R(1, 0) * b_dot_x - R(0, 0) * b_dot_y) / R(2, 2);
+      pqrCmd.y = (R(1, 1) * b_dot_x - R(0, 1) * b_dot_y) / R(2, 2);
+  }
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
@@ -157,11 +185,19 @@ float QuadControl::AltitudeControl(float posZCmd, float velZCmd, float posZ, flo
   //  - remember that for an upright quad in NED, thrust should be HIGHER if the desired Z acceleration is LOWER
 
   Mat3x3F R = attitude.RotationMatrix_IwrtB();
-  float thrust = 0;
+  float thrust = 0.0f;
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
+  float err = posZCmd - posZ;
 
+  float vel_cmd = CONSTRAIN(velZCmd, -maxAscentRate, maxDescentRate);
+  float v_err = vel_cmd - velZ;
 
+  integratedAltitudeError += err * dt;
+
+  float u1_bar = kpPosZ * err + kpVelZ * v_err + KiPosZ * integratedAltitudeError + accelZCmd;
+
+  thrust = -mass*(u1_bar - CONST_GRAVITY) / R(2,2);
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
   
@@ -199,7 +235,20 @@ V3F QuadControl::LateralPositionControl(V3F posCmd, V3F velCmd, V3F pos, V3F vel
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
-  
+  V3F err = posCmd - pos;
+
+  if (velCmd.mag() > maxSpeedXY) {
+      // normalize the velocity components to the max allowed
+      velCmd = velCmd.norm() * maxSpeedXY;
+  }
+
+  V3F v_err = velCmd - vel;
+
+  accelCmd += kpPosXY * err + kpVelXY * v_err;
+  if (accelCmd.mag() > maxAccelXY) {
+      // normalize acceleration components to the max allowed
+      accelCmd = accelCmd.norm() * maxAccelXY;
+  }
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
@@ -222,6 +271,9 @@ float QuadControl::YawControl(float yawCmd, float yaw)
   float yawRateCmd=0;
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
+  float yaw_cmd = fmodf(yawCmd, 2 * F_PI);
+  float err = yaw_cmd - yaw;
+  yawRateCmd = kpYaw * err;
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 

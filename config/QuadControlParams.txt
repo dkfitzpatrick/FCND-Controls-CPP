@@ -9,7 +9,7 @@
 UseIdealEstimator=1
 
 # Physical properties
-Mass = 0.4
+Mass = 0.5 # 0.495    #  original 0.4
 L = 0.17
 Ixx = 0.0023
 Iyy = 0.0023
@@ -18,21 +18,29 @@ kappa = 0.016
 minMotorThrust = .1
 maxMotorThrust = 4.5
 
+
+## NOTES:    
+##    -- default parameters are too small by factor of 2x to 4x.
+##    -- KpVelXY very sensisitive
+
+# velocity gains should be 3-4X greater than position gains?
+
 # Position control gains
-kpPosXY = 1
-kpPosZ = 1
-KiPosZ = 20
+kpPosXY = 32 # 1
+kpPosZ = 36  # 1
+
+KiPosZ = 20      # 20
 
 # Velocity control gains
-kpVelXY = 4
-kpVelZ = 4
+kpVelXY = 12 # 4
+kpVelZ = 12   # 4
 
 # Angle control gains
-kpBank = 5
-kpYaw = 1
+kpBank = 12 # 5
+kpYaw = 4  # 1
 
 # Angle rate gains
-kpPQR = 23, 23, 5
+kpPQR = 88, 88, 8 # 23, 23, 5
 
 # limits
 maxAscentRate = 5

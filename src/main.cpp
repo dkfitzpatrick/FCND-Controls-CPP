@@ -1,4 +1,4 @@
-#include "Common.h"
+ #include "Common.h"
 #include "Trajectory.h"
 #include "Utility/Timer.h"
 
@@ -37,7 +37,11 @@ int randomNumCarry=-1;
 void OnTimer(int v);
 
 vector<QuadcopterHandle> CreateVehicles();
-string _scenarioFile="../config/1_Intro.txt";
+string _scenarioFile = "../config/1_Intro.txt";
+// string _scenarioFile = "../config/2_AttitudeControl.txt";
+// string _scenarioFile = "../config/3_PositionControl.txt";
+// string _scenarioFile = "../config/4_Nonidealities.txt";
+// string _scenarioFile = "../config/5_TrajectoryFollow.txt";
 
 #include "MavlinkNode/MavlinkNode.h"
 shared_ptr<MavlinkNode> mlNode;
@@ -74,12 +78,14 @@ int main(int argcp, char **argv)
 
 void LoadScenario(string scenarioFile)
 {
+    /*
   FILE *f = fopen("../config/LastScenario.txt","w");
   if(f)
   {
     fprintf(f, "%s", scenarioFile.c_str());
     fclose(f);
   }
+   */
 
   ParamsHandle config = SimpleConfig::GetInstance();
   _scenarioFile = scenarioFile;
