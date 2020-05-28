@@ -75,16 +75,41 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
   cmd.desiredThrustsN[2] = mass * 9.81f / 4.f; // rear left
   cmd.desiredThrustsN[3] = mass * 9.81f / 4.f; // rear right
 */
-  // base class - L, kappa
-    float l = L / sqrtf(2.0f);
-    float t1 = momentCmd.x / l;
-    float t2 = momentCmd.y / l;
-    float t3 = momentCmd.z / kappa;
+    // base class - L, kappa
 
-    cmd.desiredThrustsN[0] = (collThrustCmd + t1 + t2 - t3) / 4.0f; // front left
-    cmd.desiredThrustsN[1] = (collThrustCmd - t1 + t2 + t3) / 4.0f; // front right
-    cmd.desiredThrustsN[2] = (collThrustCmd + t1 - t2 + t3) / 4.0f; // rear left
-    cmd.desiredThrustsN[3] = (collThrustCmd - t1 - t2 - t3) / 4.0f; // rear right
+    // drone is x-configuration
+    //
+    //         x
+    //    f_1  ^  f_2 
+    //         |
+    //         + - - > y
+    //         
+    //    f_3     f_4
+    //
+    //                          -1
+    //  f1     | 1   1   1   1 |   | f_tot          |
+    //  f2  =  | 1  -1   1  -1 | * | f_p [Mx/l]     |
+    //  f3     | 1   1  -1  -1 |   | f_q [My/l]     |
+    //  f4     |-1   1   1  -1 |   | f_r [Mz/kappa] |
+    //
+
+    float l = L / sqrtf(2.0f);
+    // translate desired moments into forces.
+    float f_tot = collThrustCmd;
+    float f_p = momentCmd.x / l;
+    float f_q = momentCmd.y / l;
+    float f_r = momentCmd.z / kappa;
+
+    float f_1 = (f_tot + f_p + f_q - f_r) / 4.0f;   // eqn:  f_tot + f_p + f_q - f_r
+    float f_2 = f_1 - (f_p - f_r) / 2.0f;           // eqn:  f_p - f_r
+    float f_4 = (f_tot - f_p) / 2.0f - f_2;         // eqn:  f_tot - f_p
+    float f_3 = f_tot - f_1 - f_2 - f_4;            // eqn:  f_tot 
+
+    cmd.desiredThrustsN[0] = f_1; 
+    cmd.desiredThrustsN[1] = f_2;
+    cmd.desiredThrustsN[2] = f_3; 
+    cmd.desiredThrustsN[3] = f_4; 
+
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
   return cmd;
